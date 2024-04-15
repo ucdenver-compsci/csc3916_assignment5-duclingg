@@ -90,18 +90,46 @@ router.post('/signin', function (req, res) {
 // API route to movies
 router.route('/movies')
     .get(authJwtController.isAuthenticated, function (req, res) {
-        Movie.find({
-            title: { $exists: true, $ne: null },
-            releaseDate: { $exists: true, $ne: null },
-            genre: { $exists: true, $ne: null },
-            actors: { $exists: true, $ne: null }
-        }, (err, movies) => {
-            if (err) {
-                res.status(400).send(err);
-            } else {
-                res.status(200).json(movies);
-            }
-        });
+        if (req.query.reviews === 'true') {
+            const aggregate = [
+                {
+                    $lookup: {
+                        from: 'reviews',
+                        localField: '_id',
+                        foreignField: 'movieId',
+                        as: 'movie_reviews'
+                    }
+                },
+                {
+                    $addFields: {
+                        avgRating: { $avg: '$movie_reviews.rating' }
+                    }
+                },
+                {
+                    $sort: { avgRating: -1 }
+                }
+            ];
+            Movie.aggregate(aggregate).exec((err, movies) => {
+                if (err) {
+                    res.status(500).send(err);
+                } else {
+                    res.status(200).json(movies);
+                }
+            });
+        } else {
+            Movie.find({
+                title: { $exists: true, $ne: null },
+                releaseDate: { $exists: true, $ne: null },
+                genre: { $exists: true, $ne: null },
+                actors: { $exists: true, $ne: null }
+            }).exec((err, movies) => {
+                if (err) {
+                    res.status(500).send(err);
+                } else {
+                    res.status(200).json(movies);
+                }
+            });
+        }
     })
     .post(authJwtController.isAuthenticated, function (req, res) {
         console.log(req.body);
