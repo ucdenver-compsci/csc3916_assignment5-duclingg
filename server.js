@@ -201,47 +201,45 @@ var mongoose = require('mongoose');
 
 // get movie with reviews
 router.get('/movies/:movieId', authJwtController.isAuthenticated, function (req, res) {
-    var id = mongoose.Types.ObjectId(req.params.movieId);
-    console.log('Movie ID: ', id);
+    const movieId = req.params.id;
+    const { reviews } = req.query;
 
-    if (req.query.reviews === 'true') {
+    Movie.find({ _id: movieId }, (err, movie) => {
+      if (err) {
+        res.status(400).send(err);
+      } else if (movie.length === 0) {
+        res.status(404).json({ error: "Movie not found" });
+      } else if (reviews === "true") {
         Movie.aggregate([
-            {
-                $match: { _id: mongoose.Types.ObjectId(req.params.movieId) }
+          {
+            $match: { _id: mongoose.Types.ObjectId(movieId) },
+          },
+          {
+            $lookup: {
+              from: "reviews",
+              localField: "_id",
+              foreignField: "movieId",
+              as: "movie_reviews",
             },
-            {
-                $lookup: {
-                    from: "reviews",
-                    localField: "_id",
-                    foreignField: "movieId",
-                    as: "movie_reviews"
-                }
-            },
-            {
-                $addFields: {
-                    avgRating: { $avg: '$movie_reviews.ratings' }
-                }
-            },
-            {
-                $sort: { avgRating: -1 }
+
+          },
+          {
+            $addFields: {
+              avgRating: { $avg: '$movie_reviews.rating' }
             }
+          },
+          { $limit: 1 }
         ]).exec(function (err, result) {
-            if (err) {
-                return res.status(404).json({ success: false, message: 'Movie not found' });
-            } else {
-                console.log(result);
-                res.status(200).json({ success: true, message: "Movie with reviews queried.", result });
-            }
+          if (err) {
+            res.status(404).json({ error: "Reviews not found" });
+          } else {
+              res.status(200).json(result[0]);
+          }
         });
-    } else {
-        Movie.findById(id)
-            .then(movies => {
-                res.status(200).json({ message: "This movie does not have any reviews." });
-            })
-            .catch(err => {
-                res.status(500).json({ sucess: false, message: 'Failed to fetch movies.', error: err });
-            })
-    }
+      } else {
+        res.status(200).json(movie);
+      }
+    });
 });
 
 // post review
