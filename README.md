@@ -38,4 +38,4 @@ The purpose of this assignment is to create a React Single Page App over your de
 - https://github.com/mars/create-react-app-buildpack#user-content-requires
 
 ## React Site
-[text](https://csc3916-react-duclingg.onrender.com)
+[React Site](https://csc3916-react-duclingg.onrender.com)
