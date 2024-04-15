@@ -188,6 +188,14 @@ router.get('/movies/:movieId', authJwtController.isAuthenticated, function (req,
                     foreignField: "movieId",
                     as: "movie_reviews"
                 }
+            },
+            {
+                $addFields: {
+                    avgRating: { $avg: '$movie_reviews.ratings' }
+                }
+            },
+            {
+                $sort: { avgRating: -1 }
             }
         ]).exec(function (err, result) {
             if (err) {
